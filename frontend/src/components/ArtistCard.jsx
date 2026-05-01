@@ -18,7 +18,7 @@ export const ArtistCard = ({ artist }) => {
     <Link
       to={`/artist/${artist.id}`}
       data-testid={`artist-card-${artist.id}`}
-      className="group block bg-white rounded-3xl border border-zinc-200/80 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+      className="group block bg-white rounded-3xl border border-zinc-200/80 overflow-hidden ak-card-lift relative"
     >
       {/* Portfolio 4-grid Instagram style */}
       <div className="grid grid-cols-2 gap-px bg-zinc-100 aspect-square">
@@ -28,9 +28,9 @@ export const ArtistCard = ({ artist }) => {
             <div key={i} className="relative overflow-hidden bg-zinc-100">
               {item ? (
                 item.type === "video" ? (
-                  <video src={item.data} className="w-full h-full object-cover" muted playsInline />
+                  <video src={item.data} className="w-full h-full object-cover ak-img-zoom" muted playsInline />
                 ) : (
-                  <img src={item.data} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <img src={item.data} alt="" className="w-full h-full object-cover ak-img-zoom" />
                 )
               ) : (
                 <Placeholder label={`Slot ${i + 1}`} />

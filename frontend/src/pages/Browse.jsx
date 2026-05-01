@@ -54,8 +54,10 @@ const Browse = () => {
       <Header />
 
       <div className="max-w-7xl mx-auto px-6 sm:px-8 py-10">
-        <h1 className="font-display text-3xl sm:text-4xl tracking-tight">Discover artists.</h1>
-        <p className="text-zinc-600 mt-2">Search 15+ categories across India.</p>
+        <h1 className="font-display text-4xl sm:text-6xl tracking-tight ak-fade-up">
+          Discover <em className="font-display-italic ak-brand-gradient-text">artists</em>.
+        </h1>
+        <p className="text-zinc-600 mt-3 ak-fade-up ak-delay-1">Search 15+ categories across India.</p>
 
         {/* Search + Filter toggle */}
         <div className="mt-8 flex gap-3">
@@ -173,7 +175,11 @@ const Browse = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {artists.map((a) => (<ArtistCard key={a.id} artist={a} />))}
+              {artists.map((a, i) => (
+                <div key={a.id} className="ak-fade-up" style={{ animationDelay: `${0.05 * (i % 8)}s` }}>
+                  <ArtistCard artist={a} />
+                </div>
+              ))}
             </div>
           )}
         </div>

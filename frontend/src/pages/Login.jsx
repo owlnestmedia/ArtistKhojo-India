@@ -68,7 +68,7 @@ const Login = () => {
         </button>
         <div className="mt-8"><Logo size={32} /></div>
 
-        <div className="mt-10 bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-3xl p-8 shadow-xl">
+        <div className="mt-10 bg-white/80 backdrop-blur-xl border border-zinc-200 rounded-3xl p-8 shadow-xl ak-scale-in">
           {step === "phone" ? (
             <>
               <h1 className="font-display text-3xl sm:text-4xl tracking-tight">Sign in with mobile.</h1>
