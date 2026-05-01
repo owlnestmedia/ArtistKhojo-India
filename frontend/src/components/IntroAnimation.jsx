@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { REAL_LOGO_URL } from "./Logo";
+import api from "../lib/api";
+
+const FALLBACK_REEL = ["Musician.", "Painter.", "Photographer.", "Influencer.", "Dancer.", "Writer.", "You."];
 
 /**
- * 5-act cinematic intro (~6s total). Plays once per session.
- *
- * Act 1 (0.0-0.8s)  — Dark scene + light rays sweep, blobs drift
- * Act 2 (0.8-2.0s)  — Conic ring rotates, real logo scales in with glow burst
- * Act 3 (2.0-3.0s)  — Brand gradient bar sweeps, wordmark subtle shine
- * Act 4 (3.0-4.6s)  — Category showreel flickers ("Musician → Painter → …You.")
- * Act 5 (4.6-5.8s)  — Tagline settles, scene slides up to reveal site
+ * 5-act cinematic intro (~5.8s total). Plays once per session.
+ * Circular "ARTISTKHOJO · SKILLED INDIANS" text rotates around the logo.
+ * Showreel roles are fetched from /api/categories (falls back to static list).
  */
 export const IntroAnimation = () => {
   const [visible, setVisible] = useState(() => {
@@ -17,14 +16,33 @@ export const IntroAnimation = () => {
   });
   const [exit, setExit] = useState(false);
   const [showreelIdx, setShowreelIdx] = useState(0);
+  const [roles, setRoles] = useState(FALLBACK_REEL);
 
-  const showreel = ["Musician.", "Painter.", "Photographer.", "Influencer.", "Dancer.", "Writer.", "You."];
+  // Fetch dynamic role list from backend
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    api.get("/categories")
+      .then((r) => {
+        if (cancelled || !Array.isArray(r.data)) return;
+        const dynamic = r.data.map((c) => `${c.label}.`);
+        // Always end with "You." for the punchline
+        const filtered = dynamic.filter((x) => x.toLowerCase() !== "you.");
+        // Shuffle & take 6, then append You.
+        for (let i = filtered.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+        }
+        setRoles([...filtered.slice(0, 6), "You."]);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [visible]);
 
   useEffect(() => {
     if (!visible) return;
-    // Cycle showreel during Act 4 (3.0s–4.6s → ~220ms per word)
     const reel = setInterval(() => {
-      setShowreelIdx((i) => (i + 1) % showreel.length);
+      setShowreelIdx((i) => (i + 1) % roles.length);
     }, 220);
     const reelStop = setTimeout(() => clearInterval(reel), 4600);
 
@@ -39,12 +57,11 @@ export const IntroAnimation = () => {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
+  }, [visible, roles.length]);
 
   // Particles (generated once)
   const particles = useRef(
-    Array.from({ length: 32 }, (_, i) => ({
+    Array.from({ length: 40 }, (_, i) => ({
       left: Math.random() * 100,
       delay: Math.random() * 3,
       size: 1 + Math.random() * 3,
@@ -61,13 +78,13 @@ export const IntroAnimation = () => {
       className={`fixed inset-0 z-[100] bg-zinc-950 flex items-center justify-center overflow-hidden transition-transform duration-[1100ms] ${exit ? "-translate-y-full" : ""}`}
       style={{ willChange: "transform", transitionTimingFunction: "cubic-bezier(.76,0,.24,1)" }}
     >
-      {/* Act 1 – drifting colour blobs */}
+      {/* Drifting colour blobs */}
       <div className="absolute inset-0 opacity-70 pointer-events-none">
         <div className="absolute -top-48 -left-48 w-[52rem] h-[52rem] rounded-full bg-gradient-to-br from-[#9D4CDD] via-[#3B82F6] to-transparent blur-3xl ak-intro-blob-1" />
         <div className="absolute -bottom-48 -right-48 w-[52rem] h-[52rem] rounded-full bg-gradient-to-br from-[#F97316] via-[#EC4899] to-transparent blur-3xl ak-intro-blob-2" />
       </div>
 
-      {/* Act 1 – light rays from top */}
+      {/* Light rays */}
       <div className="absolute inset-0 pointer-events-none ak-rays">
         <div
           className="absolute inset-0 opacity-40"
@@ -108,26 +125,56 @@ export const IntroAnimation = () => {
 
       {/* CENTRE STAGE */}
       <div className="relative flex flex-col items-center gap-10">
-        {/* Logo + rotating conic ring */}
-        <div className="relative" style={{ width: "clamp(280px, 30vw, 380px)", height: "clamp(280px, 30vw, 380px)" }}>
-          {/* Rotating conic ring */}
+        <div
+          className="relative"
+          style={{ width: "clamp(320px, 36vw, 460px)", height: "clamp(320px, 36vw, 460px)" }}
+        >
+          {/* Halo glow */}
+          <div className="absolute inset-12 rounded-full blur-3xl bg-gradient-to-br from-[#9D4CDD]/60 via-[#3B82F6]/40 to-[#EC4899]/60 ak-intro-glow" />
+
+          {/* Rotating conic peacock ring */}
           <div
             className="absolute inset-0 rounded-full ak-intro-ring"
             style={{
               background:
                 "conic-gradient(from 0deg, #9D4CDD, #3B82F6, #F97316, #EC4899, #9D4CDD)",
-              mask: "radial-gradient(circle, transparent 60%, #000 61%, #000 66%, transparent 67%)",
-              WebkitMask: "radial-gradient(circle, transparent 60%, #000 61%, #000 66%, transparent 67%)",
+              mask: "radial-gradient(circle, transparent 58%, #000 59%, #000 63%, transparent 64%)",
+              WebkitMask: "radial-gradient(circle, transparent 58%, #000 59%, #000 63%, transparent 64%)",
             }}
           />
-          {/* Halo glow */}
-          <div className="absolute inset-8 rounded-full blur-3xl bg-gradient-to-br from-[#9D4CDD]/60 via-[#3B82F6]/40 to-[#EC4899]/60 ak-intro-glow" />
-          {/* Real logo */}
+
+          {/* Counter-rotating circular text — ARTISTKHOJO · SKILLED INDIANS KA SINGLE PLATFORM · */}
+          <svg
+            viewBox="0 0 500 500"
+            className="absolute inset-0 w-full h-full ak-intro-circletext"
+            aria-hidden="true"
+          >
+            <defs>
+              {/* outer path — letters sit just outside the conic ring */}
+              <path
+                id="ak-ring-text-path"
+                d="M 250,250 m -218,0 a 218,218 0 1,1 436,0 a 218,218 0 1,1 -436,0"
+                fill="none"
+              />
+            </defs>
+            <text
+              fill="rgba(255,255,255,0.45)"
+              fontSize="18"
+              letterSpacing="7"
+              style={{ fontFamily: "'Supreme','Satoshi',sans-serif", fontWeight: 500, textTransform: "uppercase" }}
+            >
+              <textPath href="#ak-ring-text-path" startOffset="0">
+                ArtistKhojo ✦ Skilled Indians Ka Single Platform ✦ ArtistKhojo ✦ Find Artists · Hire Talents · Get Work Done ✦
+              </textPath>
+            </text>
+          </svg>
+
+          {/* Real logo in centre */}
           <img
             src={REAL_LOGO_URL}
             alt="ArtistKhojo"
-            className="absolute inset-10 m-auto ak-intro-logo"
-            style={{ width: "80%", height: "80%", objectFit: "contain" }}
+            className="absolute inset-16 m-auto ak-intro-logo"
+            style={{ width: "calc(100% - 8rem)", height: "calc(100% - 8rem)", objectFit: "contain" }}
             draggable="false"
           />
         </div>
@@ -140,9 +187,9 @@ export const IntroAnimation = () => {
         {/* Showreel — Act 4 */}
         <div className="h-10 flex items-baseline gap-3 font-display text-white text-2xl sm:text-4xl">
           <span className="text-white/60 ak-intro-prefix">Find your</span>
-          <span className="relative inline-block min-w-[8ch]">
+          <span className="relative inline-block min-w-[9ch]">
             <span key={showreelIdx} className="ak-intro-reel font-display-italic ak-brand-gradient-text">
-              {showreel[showreelIdx]}
+              {roles[showreelIdx]}
             </span>
           </span>
         </div>
@@ -168,6 +215,11 @@ export const IntroAnimation = () => {
           0%   { opacity: 0; transform: rotate(-180deg) scale(0.7); }
           50%  { opacity: 1; transform: rotate(0deg) scale(1); }
           100% { opacity: 1; transform: rotate(360deg) scale(1); }
+        }
+        @keyframes akIntroCircleText {
+          0%   { opacity: 0; transform: rotate(30deg); }
+          40%  { opacity: 1; transform: rotate(0deg); }
+          100% { opacity: 1; transform: rotate(-360deg); }
         }
         @keyframes akIntroSweep {
           0%   { left: -50%; }
@@ -205,21 +257,23 @@ export const IntroAnimation = () => {
           100% { transform: translateY(-120vh) translateX(20px); opacity: 0; }
         }
 
-        .ak-intro-logo      { animation: akIntroLogoIn 1.2s cubic-bezier(.2,.7,.2,1) forwards .6s; opacity: 0; }
-        .ak-intro-glow      { animation: akIntroGlow 1.8s cubic-bezier(.2,.7,.2,1) forwards .4s; opacity: 0; }
-        .ak-intro-ring      { animation: akIntroRing 6s cubic-bezier(.5,.1,.5,.9) forwards .3s; opacity: 0; }
-        .ak-intro-sweep     { animation: akIntroSweep 2s ease-in-out 2s forwards; }
-        .ak-intro-reel      { display: inline-block; animation: akIntroReel .22s ease forwards; }
-        .ak-intro-tag       { animation: akIntroTag 1.1s ease forwards 4.6s; opacity: 0; }
-        .ak-intro-prefix    { animation: akIntroPrefix .8s ease forwards 3s; opacity: 0; display: inline-block; }
-        .ak-intro-blob-1    { animation: akIntroBlob1 6s ease-in-out infinite; }
-        .ak-intro-blob-2    { animation: akIntroBlob2 7s ease-in-out infinite; }
-        .ak-rays            { animation: akRays 3.5s ease forwards; opacity: 0; }
-        .ak-particle        { animation: akParticle linear infinite; }
+        .ak-intro-logo       { animation: akIntroLogoIn 1.2s cubic-bezier(.2,.7,.2,1) forwards .6s; opacity: 0; }
+        .ak-intro-glow       { animation: akIntroGlow 1.8s cubic-bezier(.2,.7,.2,1) forwards .4s; opacity: 0; }
+        .ak-intro-ring       { animation: akIntroRing 6s cubic-bezier(.5,.1,.5,.9) forwards .3s; opacity: 0; transform-origin: 50% 50%; }
+        .ak-intro-circletext { animation: akIntroCircleText 18s linear forwards .6s; opacity: 0; transform-origin: 50% 50%; }
+        .ak-intro-sweep      { animation: akIntroSweep 2s ease-in-out 2s forwards; }
+        .ak-intro-reel       { display: inline-block; animation: akIntroReel .22s ease forwards; }
+        .ak-intro-tag        { animation: akIntroTag 1.1s ease forwards 4.6s; opacity: 0; }
+        .ak-intro-prefix     { animation: akIntroPrefix .8s ease forwards 3s; opacity: 0; display: inline-block; }
+        .ak-intro-blob-1     { animation: akIntroBlob1 6s ease-in-out infinite; }
+        .ak-intro-blob-2     { animation: akIntroBlob2 7s ease-in-out infinite; }
+        .ak-rays             { animation: akRays 3.5s ease forwards; opacity: 0; }
+        .ak-particle         { animation: akParticle linear infinite; }
 
         @media (prefers-reduced-motion: reduce) {
-          .ak-intro-logo, .ak-intro-glow, .ak-intro-ring, .ak-intro-sweep,
-          .ak-intro-reel, .ak-intro-tag, .ak-intro-prefix, .ak-rays, .ak-particle {
+          .ak-intro-logo, .ak-intro-glow, .ak-intro-ring, .ak-intro-circletext,
+          .ak-intro-sweep, .ak-intro-reel, .ak-intro-tag, .ak-intro-prefix,
+          .ak-rays, .ak-particle {
             animation-duration: .01ms !important;
             animation-delay: 0s !important;
             opacity: 1 !important;

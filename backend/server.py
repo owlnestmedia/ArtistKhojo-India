@@ -530,6 +530,29 @@ async def admin_stats(admin: dict = Depends(require_admin)):
     }
 
 
+# ---------- Categories (for frontend showreel + client catalogs) ----------
+@api.get("/categories")
+async def categories():
+    """Static catalog of supported artist categories. Used by frontend showreel."""
+    return [
+        {"key": "Visual Artist",                   "label": "Painter",         "emoji": "🎨", "hint": "Painters, sculptors, muralists"},
+        {"key": "Digital Artist",                  "label": "Digital Artist",  "emoji": "🖌️", "hint": "Illustration, concept art, NFT"},
+        {"key": "Craft & Applied Arts",            "label": "Craftsperson",    "emoji": "🧵", "hint": "Pottery, handlooms, jewelry"},
+        {"key": "Photography & Film",              "label": "Photographer",    "emoji": "📷", "hint": "Weddings, fashion, product"},
+        {"key": "Performing Artist",               "label": "Performer",       "emoji": "🎭", "hint": "Stage, improv, mime"},
+        {"key": "Theatre & Acting",                "label": "Actor",           "emoji": "🎬", "hint": "Film, commercial, stage"},
+        {"key": "Dance & Music",                   "label": "Musician",        "emoji": "🎻", "hint": "Classical, DJ, vocalist"},
+        {"key": "Voice & Audio Artist",            "label": "Voice Artist",    "emoji": "🎙️", "hint": "VO, podcasting, dubbing"},
+        {"key": "Game & Animation Artist",         "label": "Animator",        "emoji": "🕹️", "hint": "2D/3D, rigging, FX"},
+        {"key": "Content Creator",                 "label": "Content Creator", "emoji": "📱", "hint": "Reels, UGC, YouTube"},
+        {"key": "Digital Media Artist",            "label": "Motion Artist",   "emoji": "💻", "hint": "Motion, VFX, editors"},
+        {"key": "Model & Influencer",              "label": "Influencer",      "emoji": "✨", "hint": "Runway, brand, fashion"},
+        {"key": "Applied Artist (Sketch & Painter)", "label": "Sketch Artist", "emoji": "✏️", "hint": "Portrait & live sketch"},
+        {"key": "Literary Artist",                 "label": "Writer",          "emoji": "📝", "hint": "Poets, writers, lyricists"},
+        {"key": "Behind-the-Scenes Roles",         "label": "BTS Crew",        "emoji": "🎛️", "hint": "Makeup, stylists, crew"},
+    ]
+
+
 # ---------- Health ----------
 @api.get("/")
 async def root():
