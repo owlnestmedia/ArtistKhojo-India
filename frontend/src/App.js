@@ -13,6 +13,10 @@ import ArtistDashboard from "@/pages/ArtistDashboard";
 import BookingCheckout from "@/pages/BookingCheckout";
 import AdminLogin from "@/pages/AdminLogin";
 import AdminPanel from "@/pages/AdminPanel";
+import Events from "@/pages/Events";
+import EventDetail from "@/pages/EventDetail";
+import Jobs from "@/pages/Jobs";
+import JobDetail from "@/pages/JobDetail";
 
 const Protected = ({ children }) => {
   const { user, loading } = useAuth();
@@ -36,6 +40,10 @@ function App() {
           <Route path="/customer" element={<Protected><CustomerDashboard /></Protected>} />
           <Route path="/artist-dashboard" element={<Protected><ArtistDashboard /></Protected>} />
           <Route path="/book/:artistId" element={<Protected><BookingCheckout /></Protected>} />
+          <Route path="/events" element={<Events />} />
+          <Route path="/events/:id" element={<EventDetail />} />
+          <Route path="/jobs" element={<Jobs />} />
+          <Route path="/jobs/:id" element={<JobDetail />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="*" element={<Navigate to="/" />} />

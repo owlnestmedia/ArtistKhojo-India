@@ -16,6 +16,8 @@ export const Header = () => {
         <Logo />
         <nav className="hidden md:flex items-center gap-7 text-sm text-zinc-600">
           <Link to="/artists" data-testid="nav-browse" className="hover:text-zinc-900 transition-colors">Browse Artists</Link>
+          <Link to="/events" data-testid="nav-events" className="hover:text-zinc-900 transition-colors">Events</Link>
+          <Link to="/jobs" data-testid="nav-jobs" className="hover:text-zinc-900 transition-colors">Jobs</Link>
           <Link to="/login?role=artist" data-testid="nav-become-artist" className="hover:text-zinc-900 transition-colors">Become an Artist</Link>
         </nav>
         <div className="flex items-center gap-2">

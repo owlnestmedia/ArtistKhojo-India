@@ -148,6 +148,31 @@ class PayBooking(BaseModel):
     booking_id: str
 
 
+class EventIn(BaseModel):
+    title: str
+    description: str
+    category: str
+    city: str
+    venue: Optional[str] = ""
+    date_start: str
+    date_end: Optional[str] = ""
+    cover_image: Optional[str] = ""  # base64 data URL
+    ticket_price: Optional[int] = 0
+
+
+class JobIn(BaseModel):
+    title: str
+    description: str
+    category: str
+    city: str
+    job_type: str  # freelance | part-time | full-time | internship | project
+    budget: int
+
+
+class JobApplyIn(BaseModel):
+    message: Optional[str] = ""
+
+
 # ---------- Seed ----------
 @app.on_event("startup")
 async def startup():
@@ -528,6 +553,168 @@ async def admin_stats(admin: dict = Depends(require_admin)):
         "bookings": await db.bookings.count_documents({}),
         "pending_verifications": await db.artist_profiles.count_documents({"verification_submitted": True, "verified": False}),
     }
+
+
+# ---------- EVENTS ----------
+@api.post("/events")
+async def create_event(body: EventIn, user: dict = Depends(current_user)):
+    if user.get("role") == "admin":
+        raise HTTPException(403, "Admins cannot post events")
+    doc = {
+        "id": new_id(),
+        "posted_by": user["id"],
+        "posted_by_name": user.get("name") or (await _artist_name_for(user["id"])) or "Organizer",
+        "created_at": now_iso(),
+        "status": "upcoming",
+        **body.model_dump(),
+    }
+    await db.events.insert_one({**doc})
+    return {k: v for k, v in doc.items() if k != "_id"}
+
+
+async def _artist_name_for(user_id: str) -> Optional[str]:
+    p = await db.artist_profiles.find_one({"user_id": user_id}, {"_id": 0, "name": 1})
+    return p["name"] if p else None
+
+
+@api.get("/events")
+async def list_events(
+    city: Optional[str] = None,
+    category: Optional[str] = None,
+    upcoming_only: bool = True,
+    limit: int = 60,
+):
+    q: dict = {}
+    if city:
+        q["city"] = {"$regex": city, "$options": "i"}
+    if category and category != "all":
+        q["category"] = category
+    if upcoming_only:
+        q["date_start"] = {"$gte": datetime.now(timezone.utc).date().isoformat()}
+    events = await db.events.find(q, {"_id": 0}).sort("date_start", 1).to_list(limit)
+    return events
+
+
+@api.get("/events/{event_id}")
+async def get_event(event_id: str):
+    e = await db.events.find_one({"id": event_id}, {"_id": 0})
+    if not e:
+        raise HTTPException(404, "Event not found")
+    return e
+
+
+@api.delete("/events/{event_id}")
+async def delete_event(event_id: str, user: dict = Depends(current_user)):
+    e = await db.events.find_one({"id": event_id}, {"_id": 0})
+    if not e:
+        raise HTTPException(404, "Event not found")
+    if e["posted_by"] != user["id"] and user.get("role") != "admin":
+        raise HTTPException(403, "Not allowed")
+    await db.events.delete_one({"id": event_id})
+    return {"success": True}
+
+
+# ---------- JOBS ----------
+@api.post("/jobs")
+async def create_job(body: JobIn, user: dict = Depends(current_user)):
+    if user.get("role") == "admin":
+        raise HTTPException(403, "Admins cannot post jobs")
+    doc = {
+        "id": new_id(),
+        "posted_by": user["id"],
+        "posted_by_name": user.get("name") or (await _artist_name_for(user["id"])) or "Client",
+        "created_at": now_iso(),
+        "status": "open",
+        "applications_count": 0,
+        **body.model_dump(),
+    }
+    await db.jobs.insert_one({**doc})
+    return {k: v for k, v in doc.items() if k != "_id"}
+
+
+@api.get("/jobs")
+async def list_jobs(
+    city: Optional[str] = None,
+    category: Optional[str] = None,
+    job_type: Optional[str] = None,
+    open_only: bool = True,
+    limit: int = 60,
+):
+    q: dict = {}
+    if city:
+        q["city"] = {"$regex": city, "$options": "i"}
+    if category and category != "all":
+        q["category"] = category
+    if job_type:
+        q["job_type"] = job_type
+    if open_only:
+        q["status"] = "open"
+    jobs = await db.jobs.find(q, {"_id": 0}).sort("created_at", -1).to_list(limit)
+    return jobs
+
+
+@api.get("/jobs/mine")
+async def my_jobs(user: dict = Depends(current_user)):
+    posted = await db.jobs.find({"posted_by": user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    applied = await db.job_applications.find({"artist_id": user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return {"posted": posted, "applied": applied}
+
+
+@api.get("/jobs/{job_id}")
+async def get_job(job_id: str):
+    j = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not j:
+        raise HTTPException(404, "Job not found")
+    return j
+
+
+@api.post("/jobs/{job_id}/apply")
+async def apply_job(job_id: str, body: JobApplyIn, user: dict = Depends(current_user)):
+    if user.get("role") != "artist":
+        raise HTTPException(403, "Only artists can apply")
+    j = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not j or j["status"] != "open":
+        raise HTTPException(404, "Job not available")
+    if j["posted_by"] == user["id"]:
+        raise HTTPException(400, "Cannot apply to your own job")
+    existing = await db.job_applications.find_one({"job_id": job_id, "artist_id": user["id"]}, {"_id": 0})
+    if existing:
+        raise HTTPException(400, "Already applied")
+    artist = await db.artist_profiles.find_one({"user_id": user["id"]}, {"_id": 0})
+    doc = {
+        "id": new_id(),
+        "job_id": job_id,
+        "artist_id": user["id"],
+        "artist_profile_id": artist["id"] if artist else None,
+        "artist_name": artist["name"] if artist else user.get("name", "Artist"),
+        "message": body.message,
+        "created_at": now_iso(),
+    }
+    await db.job_applications.insert_one({**doc})
+    await db.jobs.update_one({"id": job_id}, {"$inc": {"applications_count": 1}})
+    return {k: v for k, v in doc.items() if k != "_id"}
+
+
+@api.get("/jobs/{job_id}/applications")
+async def job_applications(job_id: str, user: dict = Depends(current_user)):
+    j = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not j:
+        raise HTTPException(404, "Job not found")
+    if j["posted_by"] != user["id"] and user.get("role") != "admin":
+        raise HTTPException(403, "Not allowed")
+    apps = await db.job_applications.find({"job_id": job_id}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return apps
+
+
+@api.delete("/jobs/{job_id}")
+async def delete_job(job_id: str, user: dict = Depends(current_user)):
+    j = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not j:
+        raise HTTPException(404, "Job not found")
+    if j["posted_by"] != user["id"] and user.get("role") != "admin":
+        raise HTTPException(403, "Not allowed")
+    await db.jobs.delete_one({"id": job_id})
+    return {"success": True}
 
 
 # ---------- Categories (for frontend showreel + client catalogs) ----------

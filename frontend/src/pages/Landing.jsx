@@ -33,9 +33,13 @@ const SAMPLE_JOBS = [
 
 const Landing = () => {
   const [featured, setFeatured] = useState([]);
+  const [liveEvents, setLiveEvents] = useState([]);
+  const [liveJobs, setLiveJobs] = useState([]);
 
   useEffect(() => {
     api.get("/artists/featured").then((r) => setFeatured(r.data)).catch(() => {});
+    api.get("/events", { params: { upcoming_only: true } }).then((r) => setLiveEvents(r.data.slice(0, 3))).catch(() => {});
+    api.get("/jobs").then((r) => setLiveJobs(r.data.slice(0, 3))).catch(() => {});
   }, []);
 
   const marqueeCats = [...CATEGORIES, ...CATEGORIES];
@@ -135,8 +139,8 @@ const Landing = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { icon: <Sparkles size={16}/>, label: "Artists", hint: "Discover talent", to: "/artists" },
-            { icon: <CalendarDays size={16}/>, label: "Events", hint: "What's happening", to: "/artists" },
-            { icon: <Briefcase size={16}/>, label: "Jobs", hint: "Find gigs", to: "/artists" },
+            { icon: <CalendarDays size={16}/>, label: "Events", hint: "What's happening", to: "/events" },
+            { icon: <Briefcase size={16}/>, label: "Jobs", hint: "Find gigs", to: "/jobs" },
             { icon: <Building2 size={16}/>, label: "Places", hint: "Studios & venues", to: "/artists" },
           ].map((p, i) => (
             <Link
@@ -254,7 +258,7 @@ const Landing = () => {
             </div>
           </div>
           <div className="space-y-3">
-            {SAMPLE_EVENTS.map((e, i) => (
+            {liveEvents.length === 0 && SAMPLE_EVENTS.map((e, i) => (
               <div
                 key={i}
                 className="group p-5 rounded-2xl bg-white border border-zinc-200 ak-card-lift flex items-center gap-4"
@@ -274,7 +278,29 @@ const Landing = () => {
                 <ArrowRight size={16} className="text-zinc-400 transition-transform group-hover:translate-x-0.5 group-hover:text-zinc-900" />
               </div>
             ))}
+            {liveEvents.map((e) => (
+              <Link
+                key={e.id}
+                to={`/events/${e.id}`}
+                className="group p-5 rounded-2xl bg-white border border-zinc-200 ak-card-lift flex items-center gap-4"
+                data-testid={`live-event-${e.id}`}
+              >
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#9D4CDD]/15 via-[#3B82F6]/15 to-[#EC4899]/15 flex items-center justify-center overflow-hidden">
+                  {e.cover_image ? <img src={e.cover_image} alt="" className="w-full h-full object-cover" /> : <CalendarDays className="text-zinc-800" size={22} />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-display text-lg leading-tight truncate">{e.title}</div>
+                  <div className="text-xs text-zinc-500 mt-1 inline-flex items-center gap-3">
+                    <span>{e.date_start}</span>
+                    <span className="inline-flex items-center gap-1"><MapPin size={10}/> {e.city}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-zinc-100">{e.category}</span>
+                  </div>
+                </div>
+                <ArrowRight size={16} className="text-zinc-400 transition-transform group-hover:translate-x-0.5 group-hover:text-zinc-900" />
+              </Link>
+            ))}
           </div>
+          <div className="mt-4"><Link to="/events" className="text-sm underline underline-offset-4">View all events →</Link></div>
         </div>
 
         {/* Jobs */}
@@ -288,7 +314,7 @@ const Landing = () => {
             </div>
           </div>
           <div className="space-y-3">
-            {SAMPLE_JOBS.map((j, i) => (
+            {liveJobs.length === 0 && SAMPLE_JOBS.map((j, i) => (
               <div key={i} className="group p-5 rounded-2xl bg-white border border-zinc-200 ak-card-lift" data-testid={`job-${i}`}>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-zinc-100 flex items-center justify-center">
@@ -305,7 +331,25 @@ const Landing = () => {
                 </div>
               </div>
             ))}
+            {liveJobs.map((j) => (
+              <Link key={j.id} to={`/jobs/${j.id}`} className="group p-5 rounded-2xl bg-white border border-zinc-200 ak-card-lift block" data-testid={`live-job-${j.id}`}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-zinc-100 flex items-center justify-center">
+                    <Briefcase size={16} className="text-zinc-700" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-display text-lg leading-tight truncate">{j.title}</div>
+                    <div className="text-xs text-zinc-500 mt-0.5 inline-flex items-center gap-3 flex-wrap">
+                      <span className="px-2 py-0.5 rounded-full bg-zinc-100">{j.job_type}</span>
+                      <span className="inline-flex items-center gap-1"><MapPin size={10}/> {j.city}</span>
+                    </div>
+                  </div>
+                  <div className="font-display text-xl">₹{j.budget.toLocaleString()}</div>
+                </div>
+              </Link>
+            ))}
           </div>
+          <div className="mt-4"><Link to="/jobs" className="text-sm underline underline-offset-4">View all jobs →</Link></div>
         </div>
       </section>
 
@@ -343,8 +387,8 @@ const Landing = () => {
             <div className="text-xs uppercase tracking-widest text-zinc-500 mb-3">Explore</div>
             <ul className="space-y-2 text-zinc-700">
               <li><Link to="/artists">Artists</Link></li>
-              <li><Link to="/artists">Events</Link></li>
-              <li><Link to="/artists">Jobs</Link></li>
+              <li><Link to="/events">Events</Link></li>
+              <li><Link to="/jobs">Jobs</Link></li>
               <li><Link to="/artists">Places</Link></li>
             </ul>
           </div>
