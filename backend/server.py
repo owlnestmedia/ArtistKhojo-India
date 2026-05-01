@@ -257,6 +257,8 @@ async def upsert_artist(body: ArtistProfileIn, user: dict = Depends(current_user
         raise HTTPException(403, "Only artists can create a profile")
     existing = await db.artist_profiles.find_one({"user_id": user["id"]}, {"_id": 0})
     data = body.model_dump()
+    # Recompute verification flag from current aadhaar + intro video presence
+    data["verification_submitted"] = bool(data.get("aadhaar_file") and data.get("intro_video"))
     if existing:
         await db.artist_profiles.update_one({"user_id": user["id"]}, {"$set": data})
         a = await db.artist_profiles.find_one({"user_id": user["id"]}, {"_id": 0})
