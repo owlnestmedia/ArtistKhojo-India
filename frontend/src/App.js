@@ -2,6 +2,7 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { CustomCursor } from "@/components/CustomCursor";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import RoleSelect from "@/pages/RoleSelect";
@@ -25,6 +26,7 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Toaster position="top-center" richColors />
+        <CustomCursor />
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
